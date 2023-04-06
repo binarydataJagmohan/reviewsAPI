@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/forget-password',[App\Http\Controllers\Api\UserController::class,'forgetpassword']);
+Route::get('/reset-password',[UserController::class,'resetPasswordLoad']);
+Route::post('/reset-password',[UserController::class,'resetPassword']);
 
 Route::group(['middleware' => ['api']], function ($router) { 
 
@@ -39,5 +44,6 @@ Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
 Route::post('/update-profile-data/{id}', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
+Route::get('/getuser',[UserController::class,'getuser']);
 
 });

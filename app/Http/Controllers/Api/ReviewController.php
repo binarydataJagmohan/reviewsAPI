@@ -29,9 +29,30 @@ class ReviewController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+        
+        // Check if user try to rate themselves
+         if ($request->review_by == $request->review_to) {
+        return response()->json([
+            'status' => false,
+            'message' => 'You cannot rate yourself',
+        ], 422);
+    }
+
+      // Check if user has already reviewed this person
+    $existing_review = Review::where('review_by', $request->review_by)
+        ->where('review_to', $request->review_to)
+        ->first();
+
+    if ($existing_review) {
+        return response()->json([
+            'status' => false,
+            'message' => 'You have already reviewed this person',
+        ], 422);
+    }
         try {
+            //return $request->input();
             $review = new Review();
-            $review->review_by = $request->review_to;
+            $review->review_by = $request->review_by;
             $review->review_to = $request->review_to;
             $review->description = $request->description;
             $review->total_rating = $request->total_rating;
@@ -148,12 +169,26 @@ class ReviewController extends Controller
     }
 
     public function search_all_reviews(Request $request)
-    {
-        try {
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
-        }
+{
+    try {
+        $searchTerm = $request->input('search_term');
+
+        // Search for reviews that match the search term in the name, company, or group fields
+        $reviews = Review::where('name', 'LIKE', '%'.$searchTerm.'%')
+                         ->orWhere('company', 'LIKE', '%'.$searchTerm.'%')
+                         ->orWhere('group', 'LIKE', '%'.$searchTerm.'%')
+                         ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Search results',
+            'data' => $reviews,
+        ]);
+    } catch (\Exception $e) {
+        throw new HttpException(500, $e->getMessage());
     }
+}
+
 
     public function most_recent_reviews(Request $request)
     {
@@ -187,3 +222,8 @@ class ReviewController extends Controller
         }
     }
 }
+
+
+
+
+

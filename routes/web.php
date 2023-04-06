@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +18,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Auth::routes();
+//Auth::routes();
+
+Route::get('/reset-password',[UserController::class,'resetPasswordLoad']);
+Route::post('/reset-password',[UserController::class,'resetPassword']);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
