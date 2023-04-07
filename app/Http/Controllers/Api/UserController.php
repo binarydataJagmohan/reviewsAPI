@@ -161,16 +161,17 @@ class UserController extends Controller
 
     public function forgetpassword(Request $request)
     {
+        // return $request->all();
         try {
             $user =  User::where('email', $request->email)->get();
             if (count($user) > 0) {
                 $token = Str::random(40);
-                $domain = URL::to('/');
-                $url = $domain . '/reset-password?token=' . $token;
+                $domain = 'http://localhost:3000';
+                $url = $domain . '/resetpassword?token=' . $token;
                 $data['url'] = $url;
                 $data['email'] = $request->email;
                 $data['title'] = "password reset";
-                $data['body'] = "please click on below link to reset your password";
+                $data['body'] = "Please click on below link to reset your password";
                 Mail::send('forgetpassword', ['data' => $data], function ($message) use ($data) {
                     $message->to($data['email'])->subject($data['title']);
                 });
@@ -206,22 +207,38 @@ class UserController extends Controller
 
     public function resetPassword(Request $request)
     {
-        $request->validate([
-            'password' => 'required|string|min:8',
-        ]);
-        $user = User::where('email', $request->id)->first();
-        $user->password = Hash::make($request->password);
-        $user->save();
-        PasswordReset::where('email', $user->email)->delete();
-        return "<h1>your password has been reset</h1>";
+        try {
+            $request->validate([
+                'password' => 'required|string|min:8',
+            ]);
+            $user = User::where('email', $request->email)->first();
+            if (!$user) {
+                return response()->json(['success' => true, 'msg' => 'User not found'], 404);
+            }
+            $user->password = Hash::make($request->password);
+            $user->save();
+            PasswordReset::where('email', $user->email)->delete();
+            return response()->json(['success' => true, 'msg' => 'Password reset successful'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => true, 'msg' => 'Password reset failed'], 500);
+        }
     }
 
 
 
-    public function getuser()
+    public function getCurrentUserData(Request $request)
     {
-        $student = User::where('status', '!=', 'deleted')->where('id', Auth::id())->first();
+        try {
+            $user_id = $request->id;
+            $userdata = User::where('id', $user_id)->where('status', '!=', 'deleted')->first();
 
-        return $student;
+            if ($userdata) {
+                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
     }
 }

@@ -44,6 +44,6 @@ Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
 Route::post('/update-profile-data/{id}', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
-Route::get('/getuser',[UserController::class,'getuser']);
+Route::post('/getCurrentUserData',[UserController::class,'getCurrentUserData']);
 
 });
