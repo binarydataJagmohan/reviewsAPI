@@ -42,8 +42,10 @@ Route::group(['middleware' => ['api']], function ($router) {
 
 Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_register']);
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
-Route::post('/update-profile-data/{id}', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
+Route::post('/update-profile-data', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
-Route::post('/getCurrentUserData',[UserController::class,'getCurrentUserData']);
+Route::get('/get-user-profile-data/{id}',[UserController::class,'get_user_profile_data']);
+Route::get('/search',[UserController::class,'search']);
+Route::get('/user_review/{id}',[UserController::class,'user_review']);
 
 });

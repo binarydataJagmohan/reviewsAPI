@@ -73,20 +73,37 @@ class ReviewController extends Controller
         }
     }
 
+    // public function get_all_reviews(Request $request)
+    // {
+    //     try {
+    //         $reviewsdata = Review::where('status', '!=', 'deleted')
+    //             ->get();
+    //         if ($reviewsdata->count() > 0) {
+    //             return response()->json(['status' => true, 'message' => "reviews data fetch successfully", 'data' => $reviewsdata], 200);
+    //         } else {
+    //             return response()->json(['status' => false, 'message' => "No reviews data found", 'data' => ""], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         throw new HttpException(500, $e->getMessage());
+    //     }
+    // }
+
     public function get_all_reviews(Request $request)
-    {
-        try {
-            $reviewsdata = Review::where('status', '!=', 'deleted')
-                ->get();
-            if ($reviewsdata->count() > 0) {
-                return response()->json(['status' => true, 'message' => "reviews data fetch successfully", 'data' => $reviewsdata], 200);
-            } else {
-                return response()->json(['status' => false, 'message' => "No reviews data found", 'data' => ""], 200);
-            }
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
+{
+    try {
+        $reviewsdata = Review::select('reviews.*', 'users.*')
+            ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
+            ->where('reviews.status', '!=', 'deleted')
+            ->get();
+        if ($reviewsdata->count() > 0) {
+            return response()->json(['status' => true, 'message' => "Reviews data fetched successfully", 'data' => $reviewsdata], 200);
+        } else {
+            return response()->json(['status' => false, 'message' => "No reviews data found", 'data' => ""], 200);
         }
+    } catch (\Exception $e) {
+        throw new HttpException(500, $e->getMessage());
     }
+}
 
     public function delete_reviews(Request $request)
     {

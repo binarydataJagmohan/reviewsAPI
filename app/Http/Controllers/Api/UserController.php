@@ -59,9 +59,9 @@ class UserController extends Controller
                 } else {
                     return response()->json(['message' => "'There has been error for to register the user"]);
                 }
+            } catch (\Exception $e) {
+                throw new HttpException(500, $e->getMessage());
             }
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
         }
     }
     public function user_login(Request $request)
@@ -114,7 +114,17 @@ class UserController extends Controller
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
         }
-    }
+
+        protected function respondWithToken($token)
+        {
+             return response([
+                 'accesss_token' => $token,
+                 'token_type' => 'bearer',
+                 'expires_in' => auth()->factory()->getTTL()*60,
+                 'user' => auth()->user()
+             ]);
+        }
+
 
     protected function respondWithToken($token)
     {
@@ -240,5 +250,71 @@ class UserController extends Controller
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
         }
+      
     }
+
+    public function get_user_profile_data(Request $request,$id)
+    {
+        try {
+             $reviewsdata = Review::join('users','users.id','reviews.review_to')->where('users.id',$id)->get();
+            
+            $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
+            if($userdata){
+                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata,'reviews'=>$reviewsdata], 200);
+            }else {
+                return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+
+    public function search(Request $request)
+{
+    $query = $request->input('q');
+
+    $users = User::where('first_name', 'like', "%$query%")
+        ->orWhere('company_name', 'like', "%$query%")
+        ->orWhere('position_title', 'like', "%$query%")
+        ->get();
+    
+    if ($users->isEmpty()) {
+        return response()->json([
+            'message' => 'No results found.'
+        ], 404);
+    }
+    
+    return response()->json([
+        'results' => $users
+    ]);
+}
+
+
+public function user_review(Request $request, $id)
+{
+    try {
+        // Find the user with the specified ID
+        $user = User::findOrFail($id);
+
+
+
+        // Fetch the reviews data for the specified user
+        $reviewsdata = Review::join('users','users.id','reviews.review_to')->where('users.id',$id)->get();
+        
+          return $reviewsdata;
+
+        if ($reviewsdata->count() > 0) {
+            // Return the user data and reviews data
+            return response()->json(['status' => true, 'message' => "Data fetched successfully", 'data' => $user, $reviewsdata], 200);
+        } else {
+            return response()->json(['status' => false, 'message' => "No reviews data found for the specified user", 'user' => $user, 'reviews' => []], 200);
+        }
+    } catch (\Exception $e) {
+        throw new HttpException(500, $e->getMessage());
+    }
+}
+
+
+  
+
 }
