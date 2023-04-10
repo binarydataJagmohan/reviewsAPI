@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Review;
-use App\Models\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -125,16 +124,6 @@ class UserController extends Controller
         }
 
 
-    protected function respondWithToken($token)
-    {
-        return response([
-            'accesss_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
-        ]);
-    }
-
-
 
     public function update_profile_data(Request $request)
     {
@@ -168,9 +157,8 @@ class UserController extends Controller
         }
     }
 
-    public function forgetpassword(Request $request)
+    public function user_own_reviews(Request $request)
     {
-        // return $request->all();
         try {
             // Get the authenticated user
             $user = Auth::user();
@@ -178,50 +166,14 @@ class UserController extends Controller
             // Get the user's ID
             $userId = $user->id;
 
-    public function resetPasswordLoad(Request $request)
-    {
-        $resetData = PasswordReset::where('token', $request->token)->first();
+            // Query the reviews table for reviews by the user
+            $reviews = Review::where('review_by', $userId)->get();
 
-        if ($resetData) {
-            $user = User::Where('email', $resetData['email'])->first();
-            return view('resetpassword', compact('user'));
-        } else {
-            return view('404');
-        }
-    }
-
-    public function resetPassword(Request $request)
-    {
-        try {
-            $request->validate([
-                'password' => 'required|string|min:8',
+            // Return the result as a JSON response
+            return response()->json([
+                'status' => true,
+                'reviews' => $reviews
             ]);
-            $user = User::where('email', $request->email)->first();
-            if (!$user) {
-                return response()->json(['success' => true, 'msg' => 'User not found'], 404);
-            }
-            $user->password = Hash::make($request->password);
-            $user->save();
-            PasswordReset::where('email', $user->email)->delete();
-            return response()->json(['success' => true, 'msg' => 'Password reset successful'], 200);
-        } catch (\Exception $e) {
-            return response()->json(['success' => true, 'msg' => 'Password reset failed'], 500);
-        }
-    }
-
-
-
-    public function getCurrentUserData(Request $request)
-    {
-        try {
-            $user_id = $request->id;
-            $userdata = User::where('id', $user_id)->where('status', '!=', 'deleted')->first();
-
-            if ($userdata) {
-                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata], 200);
-            } else {
-                return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
-            }
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
         }

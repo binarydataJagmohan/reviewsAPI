@@ -19,10 +19,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/forget-password',[App\Http\Controllers\Api\UserController::class,'forgetpassword']);
-Route::get('/reset-password',[UserController::class,'resetPasswordLoad']);
-Route::post('/reset-password',[UserController::class,'resetPassword']);
-
 Route::group(['middleware' => ['api']], function ($router) { 
 
 Route::post('/savereview', [App\Http\Controllers\Api\ReviewController::class, 'save_review']);
