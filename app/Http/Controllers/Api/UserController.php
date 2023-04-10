@@ -13,9 +13,6 @@ use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use DB;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Mail;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 
@@ -24,95 +21,97 @@ class UserController extends Controller
 {
 
     public function user_register(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|min:2|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email|max:255|unique:users',
-                'password' => 'required|min:8|confirmed',
-            ]);
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors(),
+        {
+            try {
+                $validator = Validator::make($request->all(), [
+                    'first_name' => 'required|string|min:2|max:255',
+                    'last_name' => 'required|string|max:255',
+                    'email' => 'required|email|max:255|unique:users',
+                    'password' => 'required|min:8|confirmed',
                 ]);
-            } else {
-                $data = $request->all();
-                $data['password'] = Hash::make($request->password);
-                // $data['view_password'] = $request->password;
-                $user = new User();
-                $register  = $user->create($data);
-
-                if ($register) {
-                    $token = JWTAuth::fromUser($register);
-
-                    $register->makeHidden(['view_password']);
-
+                if ($validator->fails()) {
                     return response()->json([
-                        'status' => true,
-                        'message' => 'Registration has been done successfully',
-                        'user' => $register,
-                        'token' => $token,
+                        'status' => false,
+                        'message' => 'Validation error',
+                        'errors' => $validator->errors(),
                     ]);
                 } else {
-                    return response()->json(['message' => "'There has been error for to register the user"]);
+                    $data = $request->all();
+                    $data['password'] = Hash::make($request->password);
+                    $data['view_password'] = $request->password;
+                    $user = new User();
+                    $register  = $user->create($data);
+
+                    if ($register) {
+                        $token = JWTAuth::fromUser($register);
+
+                        $register->makeHidden(['view_password']);
+
+                        return response()->json([
+                            'status' => true,
+                            'message' => 'Registration has been done successfully',
+                            'user' => $register,
+                            'token' => $token,
+                        ]);
+                    } else {
+                        return response()->json(['message' => "'There has been error for to register the user"]);
+                    }
                 }
             } catch (\Exception $e) {
                 throw new HttpException(500, $e->getMessage());
             }
         }
-    }
-    public function user_login(Request $request)
-    {
-        try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required',
-            ]);
-
-            $email = $request->input('email');
-            $password = $request->input('password');
-
-            $user = User::where('email', $email)->first();
-
-            if (!$user) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Email does not exist!',
+        public function user_login(Request $request)
+        {
+            try {
+                $request->validate([
+                    'email' => 'required|email',
+                    'password' => 'required',
                 ]);
-            }
 
-            if (!Hash::check($password, $user->password)) {
+                $email = $request->input('email');
+                $password = $request->input('password');
+
+                $user = User::where('email', $email)->first();
+
+                if (!$user) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Email does not exist!',
+                    ]);
+                }
+
+                if (!Hash::check($password, $user->password)) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Incorrect password!',
+                    ]);
+                }
+
+                 $credentials = $request->only(['email', 'password']);
+
+                if (!$token = JWTAuth::attempt($credentials)) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Invalid email or password!',
+                    ]);
+                }
+
+                $user = Auth::user();
+
                 return response()->json([
-                    'status' => false,
-                    'message' => 'Incorrect password!',
+                    'status' => true,
+                    'message' => 'User logged in successfully',
+                    'user' => $user,
+                    'authorisation' => [
+                        'token' => $token,
+                        'type' => 'bearer',
+                    ]
                 ]);
+                
+            } catch (\Exception $e) {
+                throw new HttpException(500, $e->getMessage());
             }
-
-            $credentials = $request->only(['email', 'password']);
-
-            if (!$token = JWTAuth::attempt($credentials)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Invalid email or password!',
-                ]);
-            }
-
-            $user = Auth::user();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'User logged in successfully',
-                'user' => $user,
-                'authorisation' => [
-                    'token' => $token,
-                    'type' => 'bearer',
-                ]
-            ]);
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
         }
 
         protected function respondWithToken($token)
@@ -173,35 +172,11 @@ class UserController extends Controller
     {
         // return $request->all();
         try {
-            $user =  User::where('email', $request->email)->get();
-            if (count($user) > 0) {
-                $token = Str::random(40);
-                $domain = 'http://localhost:3000';
-                $url = $domain . '/resetpassword?token=' . $token;
-                $data['url'] = $url;
-                $data['email'] = $request->email;
-                $data['title'] = "password reset";
-                $data['body'] = "Please click on below link to reset your password";
-                Mail::send('forgetpassword', ['data' => $data], function ($message) use ($data) {
-                    $message->to($data['email'])->subject($data['title']);
-                });
-                $datetime = Carbon::now()->format('Y-m-d H:i:s');
-                PasswordReset::updateOrCreate(
-                    ['email' => $request->email],
-                    [
-                        'email' => $request->email,
-                        'token' => $token,
-                        'created_at' => $datetime,
-                    ]
-                );
-                return response()->json(['success' => true, 'msg' => 'Please check your email!']);
-            } else {
-                return response()->json(['success' => false, 'msg' => 'user not found!']);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
-        }
-    }
+            // Get the authenticated user
+            $user = Auth::user();
+            
+            // Get the user's ID
+            $userId = $user->id;
 
     public function resetPasswordLoad(Request $request)
     {
