@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Models\ReviewLikes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use DB;
 
 
 class ReviewController extends Controller
@@ -73,20 +76,20 @@ class ReviewController extends Controller
         }
     }
 
-    // public function get_all_reviews(Request $request)
-    // {
-    //     try {
-    //         $reviewsdata = Review::where('status', '!=', 'deleted')
-    //             ->get();
-    //         if ($reviewsdata->count() > 0) {
-    //             return response()->json(['status' => true, 'message' => "reviews data fetch successfully", 'data' => $reviewsdata], 200);
-    //         } else {
-    //             return response()->json(['status' => false, 'message' => "No reviews data found", 'data' => ""], 200);
-    //         }
-    //     } catch (\Exception $e) {
-    //         throw new HttpException(500, $e->getMessage());
-    //     }
-    // }
+    public function my_reviews(Request $request, $id)
+{
+    $user = User::find($id);
+
+    $reviews = DB::table('reviews')
+        ->join('users', 'reviews.review_by', '=', 'users.id')
+        ->where('reviews.review_to', '=', $id)
+        ->select('reviews.*', 'users.first_name')
+        ->get();
+
+        
+
+    return response()->json(['data' => $user, 'data' => $reviews]);
+}
 
     public function get_all_reviews(Request $request)
 {
@@ -237,6 +240,42 @@ class ReviewController extends Controller
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
         }
+    }
+
+
+    public function like(Request $request)
+    {
+        $user = User::where('id', $request->userId)->first();
+
+        // check if the user has already liked/disliked the review
+        $existing_like = ReviewLikes::where(['user_id'=> $user->id,'review_id'=>$request->reviewId])->first();
+        if ($existing_like) {
+            // if the user has already liked/disliked the review, update the existing record
+            $existing_like->like_status = $request->isLiked;
+            $existing_like->save();
+            $current_likes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 1])->count();
+            Review::where('id', $request->reviewId)->update(['thumbs_up' => $current_likes]);
+            $current_dislikes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 0])->count();
+            Review::where('id', $request->reviewId)->update(['thumbs_down' => $current_dislikes]);
+        } else {
+            // if the user hasn't liked/disliked the review yet, create a new record
+            $like = new ReviewLikes();
+            $like->user_id = $user->id;
+            $like->review_id = $request->reviewId;
+            $like->like_status = $request->isLiked;
+            $like->save();
+        }
+        $review = Review::where('id', $request->reviewId)->first();
+        
+        if ($request->isLiked === 1) {
+            $current_likes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 1])->count();
+            Review::where('id', $request->reviewId)->update(['thumbs_up' => $current_likes]);
+        } else {
+            $current_dislikes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 0])->count();
+            Review::where('id', $request->reviewId)->update(['thumbs_down' => $current_dislikes]);
+        }
+        $reviews = Review::where('review_to',$review->review_to)->get();
+        return response()->json(['message' => 'Like saved successfully', 'data' => $reviews]);
     }
 }
 

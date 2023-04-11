@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,7 @@ Route::get('/most-recent-review', [App\Http\Controllers\Api\ReviewController::cl
 Route::get('/search-all-reviews', [App\Http\Controllers\Api\ReviewController::class, 'search_all_reviews']);
 Route::get('/most-liked-review', [App\Http\Controllers\Api\ReviewController::class, 'most_liked_reviews']);
 
+
 });
 
 
@@ -48,5 +50,9 @@ Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class,
 Route::get('/get-user-profile-data/{id}',[UserController::class,'get_user_profile_data']);
 Route::get('/search',[UserController::class,'search']);
 Route::get('/user_review/{id}',[UserController::class,'user_review']);
+Route::get('/review_by_me/{id}',[UserController::class,'review_by_me']);
+Route::get('/my_reviews/{id}',[ReviewController::class,'my_reviews']);
+Route::post('/like-review',[App\Http\Controllers\Api\ReviewController::class,'like']);
+
 
 });

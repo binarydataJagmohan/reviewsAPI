@@ -188,10 +188,14 @@ class UserController extends Controller
 
     public function get_user_profile_data(Request $request,$id)
     {
+
         try {
-             $reviewsdata = Review::join('users','users.id','reviews.review_to')->where('users.id',$id)->get();
-            
+             $reviewsdata = Review::join('users','users.id','reviews.review_to')->select('reviews.*')->where('users.id',$id)->get();
+             
+           
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
+            //echo "<pre>";
+            //print_r($reviewsdata );
             if($userdata){
                 return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata,'reviews'=>$reviewsdata], 200);
             }else {
@@ -310,6 +314,20 @@ public function resetPasswordLoad(Request $request)
         } catch (\Exception $e) {
             return response()->json(['success' => true, 'msg' => 'Password reset failed'], 500);
         }
+    }
+
+    public function review_by_me(Request $request,$id)
+    {
+         $users = DB::table('users')
+                ->join('reviews', 'users.id', '=', 'reviews.review_by')
+                ->select('users.*')
+                ->where('reviews.review_by', $id)
+                ->distinct()
+                ->get();
+
+    return response()->json([
+        'users' => $users
+    ]);
     }
 
 
