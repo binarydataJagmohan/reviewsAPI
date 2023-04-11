@@ -191,13 +191,22 @@ class UserController extends Controller
 
         try {
              $reviewsdata = Review::join('users','users.id','reviews.review_to')->select('reviews.*')->where('users.id',$id)->get();
+
+             $reviewsdata1 = Review::join('users','users.id','reviews.review_to')
+                              ->select('reviews.*','users.*')
+                              ->where('reviews.review_by', $id)
+                              ->get();
+                               
+                            // echo "<pre>";
+                            //   print_r($reviewsdata1);
+                            //   die;
              
            
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
             //echo "<pre>";
             //print_r($reviewsdata );
             if($userdata){
-                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata,'reviews'=>$reviewsdata], 200);
+                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata,'reviews'=>$reviewsdata, 'reviews1' => $reviewsdata1 ], 200);
             }else {
                 return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
             }
