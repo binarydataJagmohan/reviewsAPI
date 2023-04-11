@@ -186,28 +186,18 @@ class UserController extends Controller
       
     }
 
-    public function get_user_profile_data(Request $request,$id)
+          public function get_user_profile_data(Request $request, $id)
     {
-
         try {
-             $reviewsdata = Review::join('users','users.id','reviews.review_to')->select('reviews.*')->where('users.id',$id)->get();
-
-             $reviewsdata1 = Review::join('users','users.id','reviews.review_to')
-                              ->select('reviews.*','users.*')
-                              ->where('reviews.review_by', $id)
-                              ->get();
-                               
-                            // echo "<pre>";
-                            //   print_r($reviewsdata1);
-                            //   die;
-             
-           
+            // $reviewsdata = Review::join('users', 'users.id', 'reviews.review_to')->select('reviews.*')->where('users.id', $id)->get();
+            $reviewsdata = Review::join('users', 'users.id', 'reviews.review_to')
+                ->select('reviews.*',"reviews.id as review_id", 'users.*')
+                ->where(['reviews.review_by'=> $id,'reviews.status'=>'active'])
+                ->get();
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
-            //echo "<pre>";
-            //print_r($reviewsdata );
-            if($userdata){
-                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata,'reviews'=>$reviewsdata, 'reviews1' => $reviewsdata1 ], 200);
-            }else {
+            if ($userdata) {
+                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata, 'reviews' => $reviewsdata], 200);
+            } else {
                 return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
             }
         } catch (\Exception $e) {

@@ -29,7 +29,7 @@ Route::group(['middleware' => ['api']], function ($router) {
 
 Route::post('/savereview', [App\Http\Controllers\Api\ReviewController::class, 'save_review']);
 Route::get('/getallreview', [App\Http\Controllers\Api\ReviewController::class, 'get_all_reviews']);
-Route::delete('/delete-reviews/{id}', [App\Http\Controllers\Api\ReviewController::class, 'delete_reviews']);
+Route::post('/delete-reviews', [App\Http\Controllers\Api\ReviewController::class, 'delete_reviews']);
 Route::get('/get-review/{id}', [App\Http\Controllers\Api\ReviewController::class, 'get_review_by_id']);
 Route::get('/get-review-to/{id}', [App\Http\Controllers\Api\ReviewController::class, 'get_all_review_to']);
 Route::get('/get-review-by/{id}', [App\Http\Controllers\Api\ReviewController::class, 'get_all_review_by']);
@@ -53,6 +53,7 @@ Route::get('/user_review/{id}',[UserController::class,'user_review']);
 Route::get('/review_by_me/{id}',[UserController::class,'review_by_me']);
 Route::get('/my_reviews/{id}',[ReviewController::class,'my_reviews']);
 Route::post('/like-review',[App\Http\Controllers\Api\ReviewController::class,'like']);
+Route::post('/new_user_review',[ReviewController::class,'new_user_review']);
 
 
 });

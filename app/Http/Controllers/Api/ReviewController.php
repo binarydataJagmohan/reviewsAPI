@@ -109,20 +109,21 @@ class ReviewController extends Controller
 }
 
     public function delete_reviews(Request $request)
-    {
-        try {
-            $review = Review::where('id', $request->id)->update([
-                'status' => 'deleted'
-            ]);
-            if ($review) {
-                return response()->json(['status' => true, 'message' => 'reviews has been deleted successfully!'], 200);
-            } else {
-                return response()->json(['erroe' => false, 'message' => 'There has been error for updating the status of single reviews data!'], 200);
-            }
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
+{
+    try {
+        $review = Review::where('id', $request->id)->update([
+            'status' => 'deleted'
+        ]);
+        if ($review) {
+            return response()->json(['status' => true, 'message' => 'reviews has been deleted successfully!'], 200);
+        } else {
+            return response()->json(['erroe' => false, 'message' => 'There has been error for updating the status of single reviews data!'], 200);
         }
+    } catch (\Exception $e) {
+        throw new HttpException(500, $e->getMessage());
     }
+}
+
 
     public function get_review_by_id($id)
     {
@@ -243,10 +244,9 @@ class ReviewController extends Controller
     }
 
 
-    public function like(Request $request)
+     public function like(Request $request)
     {
         $user = User::where('id', $request->userId)->first();
-
         // check if the user has already liked/disliked the review
         $existing_like = ReviewLikes::where(['user_id'=> $user->id,'review_id'=>$request->reviewId])->first();
         if ($existing_like) {
@@ -274,9 +274,79 @@ class ReviewController extends Controller
             $current_dislikes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 0])->count();
             Review::where('id', $request->reviewId)->update(['thumbs_down' => $current_dislikes]);
         }
-        $reviews = Review::where('review_to',$review->review_to)->get();
+        $reviews = Review::join('users', 'users.id', 'reviews.review_to')
+                ->select('reviews.*','reviews.id as review_id', 'users.*')
+                ->where(['reviews.status'=>'active','reviews.review_by'=>$request->userId])
+                ->get();
         return response()->json(['message' => 'Like saved successfully', 'data' => $reviews]);
     }
+
+   public function new_user_review(Request $request)
+{
+    // $validator = Validator::make($request->all(), [
+    //     'first_name' => 'required|string',
+    //     'last_name' => 'required|string',
+    //     'company_name' => 'required|string',
+    //     'position_title' => 'required|string',
+    //     'group_name'   => 'required|string',
+    //     'review_by' => 'required|string',
+    //    // 'to' => 'required|string',
+    //     'description' => 'required|string',
+    // ]);
+
+    // if ($validator->fails()) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'Validation error',
+    //         'errors' => $validator->errors(),
+    //     ], 422);
+    // }
+    
+    // Check if user try to rate themselves
+    // if ($request->review_by == $request->to) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'You cannot rate yourself',
+    //     ], 422);
+    // }
+
+    // // Check if user has already reviewed this person
+    // $existing_review = Review::where('review_by', $request->review_by)
+    //     ->where('review_to', $request->to)
+    //     ->first();
+
+    // if ($existing_review) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'You have already reviewed this person',
+    //     ], 422);
+    // }
+
+    try {
+        $user = new User();
+        $user->first_name = $request->first_name;
+        $user->last_name = $request->last_name;
+        $user->company_name = $request->company_name;
+        $user->position_title = $request->position_title;
+        $user->group_name = $request->group_name;
+        $user->save();
+
+        $review = new Review();
+        $review->review_by = $request->review_by;
+        $review->review_to = $request->to;
+        $review->description = $request->description;
+        $review->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Review submitted successfully',
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['status' => false, 'message' => "There has been an error submitting the review."], 500);
+    }
+}
+
 }
 
 
