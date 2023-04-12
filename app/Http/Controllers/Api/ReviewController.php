@@ -288,10 +288,10 @@ class ReviewController extends Controller
     //     'last_name' => 'required|string',
     //     'company_name' => 'required|string',
     //     'position_title' => 'required|string',
-    //     'group_name'   => 'required|string',
+    //     'group_name' => 'required|string',
     //     'review_by' => 'required|string',
-    //    // 'to' => 'required|string',
     //     'description' => 'required|string',
+    //     'total_rating' => 'required|numeric|min:0|max:5',
     // ]);
 
     // if ($validator->fails()) {
@@ -301,51 +301,37 @@ class ReviewController extends Controller
     //         'errors' => $validator->errors(),
     //     ], 422);
     // }
-    
-    // Check if user try to rate themselves
-    // if ($request->review_by == $request->to) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'You cannot rate yourself',
-    //     ], 422);
-    // }
 
-    // // Check if user has already reviewed this person
-    // $existing_review = Review::where('review_by', $request->review_by)
-    //     ->where('review_to', $request->to)
-    //     ->first();
+   // return response()->json($request->all());
 
-    // if ($existing_review) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'You have already reviewed this person',
-    //     ], 422);
-    // }
 
     try {
         $user = new User();
-        $user->first_name = $request->first_name;
-        $user->last_name = $request->last_name;
-        $user->company_name = $request->company_name;
-        $user->position_title = $request->position_title;
-        $user->group_name = $request->group_name;
+        $user->first_name = $request->input('first_name');
+        $user->last_name = $request->input('last_name');
+        $user->company_name = $request->input('company_name');
+        $user->position_title = $request->input('position_title');
+        $user->group_name = $request->input('group_name');
         $user->save();
 
         $review = new Review();
         $review->review_by = $request->review_by;
-        $review->review_to = $request->to;
-        $review->description = $request->description;
+        $review->review_to = $user->id; // Use the ID of the newly created user
+        $review->description = $request->input('description');
+        $review->total_rating = $request->input('rating');
         $review->save();
-
+        // return response()->json([$review->total_rating]);
         return response()->json([
             'status' => true,
             'message' => 'Review submitted successfully',
+            'data'=> $review
         ]);
 
     } catch (\Exception $e) {
         return response()->json(['status' => false, 'message' => "There has been an error submitting the review."], 500);
     }
 }
+
 
 }
 

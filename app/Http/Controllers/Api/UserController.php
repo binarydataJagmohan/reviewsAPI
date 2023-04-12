@@ -210,6 +210,7 @@ class UserController extends Controller
     $query = $request->input('q');
 
     $users = User::where('first_name', 'like', "%$query%")
+    ->orWhere('last_name', 'like', "%$query%")
         ->orWhere('company_name', 'like', "%$query%")
         ->orWhere('position_title', 'like', "%$query%")
         ->get();
