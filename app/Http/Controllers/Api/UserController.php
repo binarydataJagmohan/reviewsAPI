@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Mail\NewUserRegistered;
+use App\Mail\UserLoggedIn;
 
 
 
@@ -51,6 +53,7 @@ class UserController extends Controller
                         $token = JWTAuth::fromUser($register);
 
                         $register->makeHidden(['view_password']);
+                        // Mail::to('dev3.bdpl@gmail.com')->send(new NewUserRegistered($register));
 
                         return response()->json([
                             'status' => true,
@@ -103,6 +106,7 @@ class UserController extends Controller
                 }
 
                 $user = Auth::user();
+              //  Mail::to($user->email)->send(new UserLoggedIn($user));
 
                 return response()->json([
                     'status' => true,

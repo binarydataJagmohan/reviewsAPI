@@ -24,7 +24,7 @@ class ReviewController extends Controller
             'review_to' => 'required|string',
             'description' => 'required|string',
             'total_rating' => 'required|numeric|min:1|max:5',
-            //'avg_rating' => 'required|numeric|min:1|max:5',
+            'avg_rating' => 'required|numeric|min:1|max:5',
         ]);
 
         if ($validator->fails()) {
@@ -65,8 +65,8 @@ class ReviewController extends Controller
             $review->thumbs_up = $request->thumbs_up;
             $review->thumbs_down = $request->thumbs_down;
             $save_review = $review->save();
-            //  $adminEmail = 'dev3.bdpl@gmail.com';
-            // Mail::to($adminEmail)->send(new ReviewMail());
+             $adminEmail = 'dev3.bdpl@gmail.com';
+            Mail::to($adminEmail)->send(new ReviewMail());
             if ($save_review) {
                 return response()->json([
                     'status' => true,
@@ -98,7 +98,7 @@ class ReviewController extends Controller
     public function get_all_reviews(Request $request)
 {
     try {
-        $reviewsdata = Review::select('reviews.id as review_id','reviews.*', 'users.*')
+        $reviewsdata = Review::select('reviews.*', 'users.*')
             ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
             ->where('reviews.status', '!=', 'deleted')
             ->get();
