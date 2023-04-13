@@ -25,6 +25,7 @@ Route::get('/reset-password',[UserController::class,'resetPasswordLoad']);
 Route::post('/reset-password',[UserController::class,'resetPassword']);
 
 
+
 Route::group(['middleware' => ['api']], function ($router) { 
 
 Route::post('/savereview', [App\Http\Controllers\Api\ReviewController::class, 'save_review']);
@@ -40,9 +41,8 @@ Route::get('/most-liked-review', [App\Http\Controllers\Api\ReviewController::cla
 
 });
 
-
+Route::get('/get-all-users', [App\Http\Controllers\Api\UserController::class, 'get_all_users']);
 Route::group(['middleware' => ['api']], function ($router) { 
-
 Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_register']);
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
 Route::post('/update-profile-data', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);

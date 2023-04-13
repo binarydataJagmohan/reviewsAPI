@@ -17,68 +17,77 @@ use Illuminate\Support\Facades\Mail;
 
 class ReviewController extends Controller
 {
-    public function save_review(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'review_by' => 'required|string',
-            'review_to' => 'required|string',
-            'description' => 'required|string',
-            'total_rating' => 'required|numeric|min:1|max:5',
-            //'avg_rating' => 'required|numeric|min:1|max:5',
-        ]);
+        public function save_review(Request $request)
+        {
+            $validator = Validator::make($request->all(), [
+                'review_by' => 'required|string',
+                'review_to' => 'required|string',
+                'description' => 'required|string',
+                'total_rating' => 'required|numeric|min:1|max:5',
+                //'avg_rating' => 'required|numeric|min:1|max:5',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            
+            // Check if user try to rate themselves
+            if ($request->review_by == $request->review_to) {
             return response()->json([
                 'status' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'message' => 'You cannot rate yourself',
             ], 422);
         }
-        
-        // Check if user try to rate themselves
-         if ($request->review_by == $request->review_to) {
-        return response()->json([
-            'status' => false,
-            'message' => 'You cannot rate yourself',
-        ], 422);
-    }
 
-      // Check if user has already reviewed this person
-    $existing_review = Review::where('review_by', $request->review_by)
-        ->where('review_to', $request->review_to)
-        ->first();
+        // Check if user has already reviewed this person
+        $existing_review = Review::where('review_by', $request->review_by)
+            ->where('review_to', $request->review_to)
+            ->first();
 
-    if ($existing_review) {
-        return response()->json([
-            'status' => false,
-            'message' => 'You have already reviewed this person',
-        ], 422);
-    }
-        try {
-            //return $request->input();
-            $review = new Review();
-            $review->review_by = $request->review_by;
-            $review->review_to = $request->review_to;
-            $review->description = $request->description;
-            $review->total_rating = $request->total_rating;
-            $review->avg_rating = $request->avg_rating;
-            $review->thumbs_up = $request->thumbs_up;
-            $review->thumbs_down = $request->thumbs_down;
-            $save_review = $review->save();
-            //  $adminEmail = 'dev3.bdpl@gmail.com';
-            // Mail::to($adminEmail)->send(new ReviewMail());
-            if ($save_review) {
-                return response()->json([
-                    'status' => true,
-                    'message' => 'Reviews submit successfully',
-                ]);
-            } else {
-                return response()->json(['status' => true, 'message' => "There has been error for to submit review."], 404);
-            }
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
+        if ($existing_review) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You have already reviewed this person',
+            ], 422);
         }
-    }
+            try {
+                //return $request->input();
+                $review = new Review();
+                $review->review_by = $request->review_by;
+                $review->review_to = $request->review_to;
+                $review->description = $request->description;
+                $review->total_rating = $request->total_rating;
+                $review->thumbs_up = $request->thumbs_up;
+                $review->thumbs_down = $request->thumbs_down;
+                // Calculate the average rating
+                $total_ratings = Review::where('review_to', $request->review_to)->sum('total_rating');
+                $num_of_ratings = Review::where('review_to', $request->review_to)->count();
+                if ($num_of_ratings > 0) {
+                    $avg_rating = round($total_ratings / $num_of_ratings, 1);
+                } else {
+                    $avg_rating = 0;
+                }
+                $review->avg_rating = $avg_rating;
+
+                $save_review = $review->save();
+                //  $adminEmail = 'dev3.bdpl@gmail.com';
+                // Mail::to($adminEmail)->send(new ReviewMail());
+                if ($save_review) {
+                    return response()->json([
+                        'status' => true,
+                        'message' => 'Reviews submit successfully',
+                    ]);
+                } else {
+                    return response()->json(['status' => true, 'message' => "There has been error for to submit review."], 404);
+                }
+            } catch (\Exception $e) {
+                throw new HttpException(500, $e->getMessage());
+            }
+        }
 
     public function my_reviews(Request $request, $id)
 {
@@ -199,9 +208,9 @@ class ReviewController extends Controller
         $searchTerm = $request->input('search_term');
 
         // Search for reviews that match the search term in the name, company, or group fields
-        $reviews = Review::where('name', 'LIKE', '%'.$searchTerm.'%')
-                         ->orWhere('company', 'LIKE', '%'.$searchTerm.'%')
-                         ->orWhere('group', 'LIKE', '%'.$searchTerm.'%')
+        $reviews = Review::where('first_name', 'LIKE', '%'.$searchTerm.'%')
+                         ->orWhere('company_name', 'LIKE', '%'.$searchTerm.'%')
+                         ->orWhere('last_name', 'LIKE', '%'.$searchTerm.'%')
                          ->get();
 
         return response()->json([
@@ -295,56 +304,62 @@ class ReviewController extends Controller
         return response()->json(['message' => 'Like saved successfully', 'data' => $reviews]);
     }
 
-   public function new_user_review(Request $request)
-{
-    // $validator = Validator::make($request->all(), [
-    //     'first_name' => 'required|string',
-    //     'last_name' => 'required|string',
-    //     'company_name' => 'required|string',
-    //     'position_title' => 'required|string',
-    //     'group_name' => 'required|string',
-    //     'review_by' => 'required|string',
-    //     'description' => 'required|string',
-    //     'total_rating' => 'required|numeric|min:0|max:5',
-    // ]);
-
-    // if ($validator->fails()) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'Validation error',
-    //         'errors' => $validator->errors(),
-    //     ], 422);
-    // }
-
-   // return response()->json($request->all());
-
-
-    try {
-        $user = new User();
-        $user->first_name = $request->input('first_name');
-        $user->last_name = $request->input('last_name');
-        $user->company_name = $request->input('company_name');
-        $user->position_title = $request->input('position_title');
-        $user->group_name = $request->input('group_name');
-        $user->save();
-
-        $review = new Review();
-        $review->review_by = $request->review_by;
-        $review->review_to = $user->id; // Use the ID of the newly created user
-        $review->description = $request->input('description');
-        $review->total_rating = $request->input('rating');
-        $review->save();
-        // return response()->json([$review->total_rating]);
-        return response()->json([
-            'status' => true,
-            'message' => 'Review submitted successfully',
-            'data'=> $review
+    public function new_user_review(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string',
+            'last_name' => 'required|string',
+            'company_name' => 'required|string',
+            'position_title' => 'required|string',
+            'group_name' => 'required|string',
+            'review_by' => 'required|string',
+            'description' => 'required|string',
         ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
-    } catch (\Exception $e) {
-        return response()->json(['status' => false, 'message' => "There has been an error submitting the review."], 500);
+       //return response()->json($request->all());
+        try {
+            $user = new User();
+            $user->first_name = $request->input('first_name');
+            $user->last_name = $request->input('last_name');
+            $user->company_name = $request->input('company_name');
+            $user->position_title = $request->input('position_title');
+            $user->group_name = $request->input('group_name');
+            $user->save();
+    
+            $review = new Review();
+            $review->review_by = $request->review_by;
+            $review->review_to = $user->id; // Use the ID of the newly created user
+            $review->description = $request->input('description');
+            $review->total_rating = $request->input('rating');
+
+            // Calculate the average rating
+            $total_ratings = Review::where('review_to', $request->review_to)->sum('total_rating');
+            $num_of_ratings = Review::where('review_to', $request->review_to)->count();
+            if ($num_of_ratings > 0) {
+                $avg_rating = round($total_ratings / $num_of_ratings, 1);
+            } else {
+                $avg_rating = 0;
+            }
+            $review->avg_rating = $avg_rating;
+            $review->save();
+            return response()->json([
+                'status' => true,
+                'message' => 'Review submitted successfully',
+                'data'=> $review
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => "There has been an error submitting the review."], 500);
+        }
     }
-}
 
 
 }

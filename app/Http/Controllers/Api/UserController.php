@@ -335,6 +335,19 @@ public function resetPasswordLoad(Request $request)
     }
 
 
-  
+    public function get_all_users(Request $request)
+    {
+        try {
+            $allusers = User::where('status','active')->where('user_type','=','user')->get();
+            if ($allusers->count() > 0) {
+                return response()->json(['status' => true, 'message' => "All users fetched successfully", 'data' => $allusers], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No users found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+      
 
 }
