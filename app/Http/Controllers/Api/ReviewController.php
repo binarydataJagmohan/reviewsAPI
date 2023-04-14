@@ -110,6 +110,7 @@ class ReviewController extends Controller
         $reviewsdata = Review::select('reviews.id as review_id','reviews.*', 'users.*')
             ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
             ->where('reviews.status', '!=', 'deleted')
+            ->latest('reviews.created_at')
             ->get();
         if ($reviewsdata->count() > 0) {
             return response()->json(['status' => true, 'message' => "Reviews data fetched successfully", 'data' => $reviewsdata], 200);

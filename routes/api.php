@@ -55,5 +55,6 @@ Route::get('/my_reviews/{id}',[ReviewController::class,'my_reviews']);
 Route::post('/like-review',[App\Http\Controllers\Api\ReviewController::class,'like']);
 Route::post('/new_user_review',[ReviewController::class,'new_user_review']);
 
-
+Route::post('/edit-profile', [App\Http\Controllers\Api\UserController::class, 'edit_profile_data']);
+Route::get('/get-edit-profile-data/{id}',[UserController::class,'get_edit_profile_data']);
 });
