@@ -37,6 +37,7 @@ Route::get('/get-review-by/{id}', [App\Http\Controllers\Api\ReviewController::cl
 Route::get('/most-recent-review', [App\Http\Controllers\Api\ReviewController::class, 'most_recent_reviews']);
 Route::get('/search-all-reviews', [App\Http\Controllers\Api\ReviewController::class, 'search_all_reviews']);
 Route::get('/most-liked-review', [App\Http\Controllers\Api\ReviewController::class, 'most_liked_reviews']);
+Route::get('/getlikedislikes/{user_id}', [App\Http\Controllers\Api\ReviewController::class, 'getlikedislikes']);
 
 
 });
@@ -48,7 +49,13 @@ Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_log
 Route::post('/update-profile-data', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
 Route::get('/get-user-profile-data/{id}',[UserController::class,'get_user_profile_data']);
+// Route::get('/get-user-profile-data/{slug}', [UserController::class, 'get_user_profile_data']);
+
 Route::get('/search',[UserController::class,'search']);
+
+Route::get('/search/{slug}', [SearchController::class, 'search']);
+
+
 Route::get('/user_review/{id}',[UserController::class,'user_review']);
 Route::get('/review_by_me/{id}',[UserController::class,'review_by_me']);
 Route::get('/my_reviews/{id}',[ReviewController::class,'my_reviews']);
@@ -57,4 +64,6 @@ Route::post('/new_user_review',[ReviewController::class,'new_user_review']);
 
 Route::post('/edit-profile', [App\Http\Controllers\Api\UserController::class, 'edit_profile_data']);
 Route::get('/get-edit-profile-data/{id}',[UserController::class,'get_edit_profile_data']);
+Route::get('/get-bunjee-score',[UserController::class,'get_bunjee_score']);
+
 });

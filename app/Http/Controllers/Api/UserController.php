@@ -28,6 +28,48 @@ use App\Mail\UserLoggedIn;
 class UserController extends Controller
 {
 
+    // public function user_register(Request $request)
+    // {
+    //     try {
+    //         $validator = Validator::make($request->all(), [
+    //             'first_name' => 'required|string|min:2|max:255',
+    //             'last_name' => 'required|string|max:255',
+    //             'email' => 'required|email|max:255|unique:users',
+    //             'password' => 'required|min:8|confirmed',
+    //         ]);
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Validation error',
+    //                 'errors' => $validator->errors(),
+    //             ]);
+    //         } else {
+    //             $data = $request->all();
+    //             $data['password'] = Hash::make($request->password);
+    //             $data['view_password'] = $request->password;
+    //             $user = new User();
+    //             $register  = $user->create($data);
+
+    //             if ($register) {
+    //                 $token = JWTAuth::fromUser($register);
+
+    //                 $register->makeHidden(['view_password']);
+    //                 // Mail::to('dev3.bdpl@gmail.com')->send(new NewUserRegistered($register));
+
+    //                 return response()->json([
+    //                     'status' => true,
+    //                     'message' => 'Registration has been done successfully',
+    //                     'user' => $register,
+    //                     'token' => $token,
+    //                 ]);
+    //             } else {
+    //                 return response()->json(['message' => "'There has been error for to register the user"]);
+    //             }
+    //         }
+    //     } catch (\Exception $e) {
+    //         throw new HttpException(500, $e->getMessage());
+    //     }
+    // }
     public function user_register(Request $request)
     {
         try {
@@ -47,6 +89,7 @@ class UserController extends Controller
                 $data = $request->all();
                 $data['password'] = Hash::make($request->password);
                 $data['view_password'] = $request->password;
+                $data['slug'] = Str::slug($request->first_name,'-',$request->last_name); 
                 $user = new User();
                 $register  = $user->create($data);
 
@@ -70,6 +113,7 @@ class UserController extends Controller
             throw new HttpException(500, $e->getMessage());
         }
     }
+
     public function user_login(Request $request)
     {
         try {
@@ -192,10 +236,10 @@ class UserController extends Controller
     public function get_user_profile_data(Request $request, $id)
     {
         try {
-            // $reviewsdata = Review::join('users', 'users.id', 'reviews.review_to')->select('reviews.*')->where('users.id', $id)->get();
-            $reviewsdata = Review::join('users', 'users.id', 'reviews.review_to')
+
+            $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
                 ->select('reviews.*', "reviews.id as review_id", 'users.*')
-                ->where(['reviews.review_by' => $id, 'reviews.status' => 'active'])
+                ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
                 ->get();
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
             if ($userdata) {
@@ -208,6 +252,13 @@ class UserController extends Controller
         }
     }
 
+    // $users = DB::table('reviews')
+    //         ->join('users as user_1', 'reviews.review_by', '=', 'user_1.id')
+    //         ->join('users as user_2', 'reviews.review_to', '=', 'user_2.id')
+    //         ->select('reviews.*', 'user_1.first_name as user_1_name', 'user_2.first_name as user_2_name')
+    //         ->where('user_1.id', $id)
+    //         ->first();
+
     public function search(Request $request)
     {
         $query = $request->input('q');
@@ -216,6 +267,7 @@ class UserController extends Controller
             ->orWhere('last_name', 'like', "%$query%")
             ->orWhere('company_name', 'like', "%$query%")
             ->orWhere('position_title', 'like', "%$query%")
+            ->orWhere('bunjee_score', 'like', "%$query%")
             ->get();
 
         if ($users->isEmpty()) {
@@ -374,7 +426,7 @@ class UserController extends Controller
             return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
         }
     }
-    
+
     public function get_edit_profile_data(Request $request, $id)
     {
         try {
@@ -383,6 +435,51 @@ class UserController extends Controller
                 return response()->json(['status' => true, 'message' => "Edit data fetch successfully!", 'data' => $editprofiledata], 200);
             } else {
                 return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+
+    // public function get_bunjee_score(Request $request)
+    // {
+    //     try {
+    //         $users = User::orderBy('bunjee_score', 'desc')->get();
+    //         $highest_bunjee_score = $users->first()->bunjee_score;
+    //         if ($users) {
+    //             return response()->json(['status' => true, 'message' => "Bunjee score data fetched successfully!", 'data' => $users, 'highest_bunjee_score' => $highest_bunjee_score], 200);
+    //         } else {
+    //             return response()->json(['status' => false, 'message' => "No bunjee score data found", 'data' => ""], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         throw new HttpException(500, $e->getMessage());
+    //     }
+    // }
+    public function get_bunjee_score(Request $request)
+    {
+        try {
+
+            // $users = User::select('users.*', 'reviews.*')
+            //     ->join('reviews', 'users.id', '=', 'reviews.review_to')
+            //     ->orderBy('users.bunjee_score', 'desc')
+            //     ->get();
+            // $highest_bunjee_score = $users->first()->bunjee_score;
+
+            // if ($users) {
+            //     return response()->json(['status' => true, 'message' => "Bunjee score data fetched successfully!", 'data' => $users, 'highest_bunjee_score' => $highest_bunjee_score], 200);
+            // } else {
+            //     return response()->json(['status' => false, 'message' => "No bunjee score data found", 'data' => ""], 200);
+            // }
+
+            $users = User::select('users.*', 'reviews.*')
+                ->join('reviews', 'users.id', '=', 'reviews.review_to')
+                ->orderBy('users.bunjee_score', 'desc')
+                ->get();
+            if ($users->isNotEmpty()) {
+                $highest_bunjee_score = $users->first()->bunjee_score;
+                return response()->json(['status' => true, 'message' => "Bunjee score data fetched successfully!", 'data' => $users, 'highest_bunjee_score' => $highest_bunjee_score], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No bunjee score data found", 'data' => ""], 200);
             }
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
