@@ -23,7 +23,7 @@ class ReviewController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'review_by' => 'required|string',
-            'review_to' => 'required|string',
+            'review_to' => 'required',
             'description' => 'required|string',
             'total_rating' => 'required|numeric|min:1|max:5',
             //'avg_rating' => 'required|numeric|min:1|max:5',
@@ -297,23 +297,22 @@ class ReviewController extends Controller
             $current_dislikes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 0])->count();
             Review::where('id', $request->reviewId)->update(['thumbs_down' => $current_dislikes]);
         }
-
-
         
         $thumbsUp = Review::where('review_to', $request->userId)->sum('thumbs_up');
         $thumbsDown = Review::where('review_to', $request->userId)->sum('thumbs_down');
         $difference = $thumbsUp - $thumbsDown;
-
+        
         $total = $thumbsUp + $thumbsDown;
-        //$per = 0;
-
+        
         if ($total > 0) {
             $per = intval(min(100, abs($difference) * 100 / $total));
-        }else{
+        } else {
             $per = 0;
         }
+        
         $user->bunjee_score = $per;
         $user->save();
+        
         $reviews = Review::join('users', 'users.id', 'reviews.review_to', 'reviews.id')
             ->select('reviews.*', 'users.*')
             ->where('review_to', $review->review_to)
@@ -395,3 +394,4 @@ class ReviewController extends Controller
     // }
 
 }
+

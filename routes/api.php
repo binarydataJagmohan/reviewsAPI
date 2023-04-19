@@ -30,6 +30,9 @@ Route::group(['middleware' => ['api']], function ($router) {
 
 Route::post('/savereview', [App\Http\Controllers\Api\ReviewController::class, 'save_review']);
 Route::get('/getallreview', [App\Http\Controllers\Api\ReviewController::class, 'get_all_reviews']);
+Route::get('/get-by-firm', [App\Http\Controllers\Api\ReviewController::class, 'get_only_firm']);
+
+
 Route::post('/delete-reviews', [App\Http\Controllers\Api\ReviewController::class, 'delete_reviews']);
 Route::get('/get-review/{id}', [App\Http\Controllers\Api\ReviewController::class, 'get_review_by_id']);
 Route::get('/get-review-to/{id}', [App\Http\Controllers\Api\ReviewController::class, 'get_all_review_to']);
@@ -48,12 +51,12 @@ Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
 Route::post('/update-profile-data', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
-Route::get('/get-user-profile-data/{id}',[UserController::class,'get_user_profile_data']);
-// Route::get('/get-user-profile-data/{slug}', [UserController::class, 'get_user_profile_data']);
+Route::get('/get-user-profile-data-id/{id}',[UserController::class,'get_user_profile_data_id']);
+Route::get('/get-user-profile-data/{slug}', [UserController::class, 'get_user_profile_data']);
 
 Route::get('/search',[UserController::class,'search']);
 
-Route::get('/search/{slug}', [SearchController::class, 'search']);
+//Route::get('/search/{slug}', [SearchController::class, 'search']);
 
 
 Route::get('/user_review/{id}',[UserController::class,'user_review']);
