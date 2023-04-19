@@ -238,6 +238,20 @@ class UserController extends Controller
         }
     }
 
+        public function get_all_users(Request $request)
+    {
+        try {
+            $allusers = User::where('status', 'active')->where('user_type', '=', 'user')->get();
+            if ($allusers->count() > 0) {
+                return response()->json(['status' => true, 'message' => "All users fetched successfully", 'data' => $allusers], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No users found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+
     // $users = DB::table('reviews')
     //         ->join('users as user_1', 'reviews.review_by', '=', 'user_1.id')
     //         ->join('users as user_2', 'reviews.review_to', '=', 'user_2.id')
@@ -366,20 +380,6 @@ class UserController extends Controller
         ]);
     }
 
-
-    public function get_all_users(Request $request)
-    {
-        try {
-            $allusers = User::where('status', 'active')->where('user_type', '=', 'user')->get();
-            if ($allusers->count() > 0) {
-                return response()->json(['status' => true, 'message' => "All users fetched successfully", 'data' => $allusers], 200);
-            } else {
-                return response()->json(['status' => false, 'message' => "No users found", 'data' => ""], 200);
-            }
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
-        }
-    }
 
     public function edit_profile_data(Request $request)
     {
