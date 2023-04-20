@@ -45,7 +45,9 @@ Route::get('/getlikedislikes/{user_id}', [App\Http\Controllers\Api\ReviewControl
 
 });
 
+// Route::group(['middleware' => ['api','jwt.auth']], function ($router) { 
 Route::get('/get-all-users', [App\Http\Controllers\Api\UserController::class, 'get_all_users']);
+// });
 Route::group(['middleware' => ['api']], function ($router) { 
 Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_register']);
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);

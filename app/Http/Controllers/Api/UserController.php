@@ -203,10 +203,15 @@ class UserController extends Controller
     {
         try {
 
+            // $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
+            //     ->select('reviews.*', "reviews.id as review_id", 'users.*')
+            //     ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
+            //     ->get();
             $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
-                ->select('reviews.*', "reviews.id as review_id", 'users.*')
-                ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
-                ->get();
+            ->select('reviews.*', "reviews.id as review_id", 'users.*')
+            ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
+           // ->orwhere(['reviews.review_by' => $id, 'reviews.status' => 'active'])
+            ->get();
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
             if ($userdata) {
                 return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata, 'reviews' => $reviewsdata], 200);
@@ -238,7 +243,7 @@ class UserController extends Controller
         }
     }
 
-        public function get_all_users(Request $request)
+    public function get_all_users(Request $request)
     {
         try {
             $allusers = User::where('status', 'active')->where('user_type', '=', 'user')->get();
