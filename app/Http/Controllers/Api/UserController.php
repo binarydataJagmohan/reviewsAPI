@@ -208,10 +208,10 @@ class UserController extends Controller
             //     ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
             //     ->get();
             $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
-            ->select('reviews.*', "reviews.id as review_id", 'users.*')
-            ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
-           // ->orwhere(['reviews.review_by' => $id, 'reviews.status' => 'active'])
-            ->get();
+                ->select('reviews.*', "reviews.id as review_id", 'users.*')
+                ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
+                // ->orwhere(['reviews.review_by' => $id, 'reviews.status' => 'active'])
+                ->get();
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
             if ($userdata) {
                 return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata, 'reviews' => $reviewsdata], 200);
@@ -444,4 +444,24 @@ class UserController extends Controller
             throw new HttpException(500, $e->getMessage());
         }
     }
+
+    public function deleteUser(Request $request)
+    {
+        try {
+            $user = User::findOrFail($request->id);
+            $reviews = Review::where('review_by', $request->id)->orWhere('review_to', $request->id)->get();
+            foreach ($reviews as $review) {
+                $review->delete();
+            }
+            $user->status = 'deleted';
+            $user->save();
+            return response()->json(['message' => 'User and reviews deleted successfully']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'User not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'An error occurred while deleting user and reviews'], 500);
+        }
+    }
+    
+ 
 }

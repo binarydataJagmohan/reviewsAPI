@@ -71,4 +71,7 @@ Route::post('/edit-profile', [App\Http\Controllers\Api\UserController::class, 'e
 Route::get('/get-edit-profile-data/{id}',[UserController::class,'get_edit_profile_data']);
 Route::get('/get-bunjee-score',[UserController::class,'get_bunjee_score']);
 
+Route::post('/users', [UserController::class, 'deleteUser']);
+
+
 });

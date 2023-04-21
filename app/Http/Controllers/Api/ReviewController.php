@@ -106,11 +106,19 @@ class ReviewController extends Controller
     public function get_all_reviews(Request $request)
     {
         try {
-            $reviewsdata = Review::select('reviews.id as review_id', 'reviews.*', 'users.*')
-                ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
-                ->where('reviews.status', '!=', 'deleted')
-                ->latest('reviews.created_at')
-                ->get();
+            // $reviewsdata = Review::select('reviews.id as review_id', 'reviews.*', 'users.*')
+            //     ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
+            //     ->where('reviews.status', '!=', 'deleted')
+            //     ->latest('reviews.created_at')
+            //     ->get();
+
+            $reviewsdata = Review::select('reviews.id as review_id', 'reviews.*', 'users.first_name as review_to_name', 'reviewer.first_name as review_by_name', 'users.group_name', 'users.company_name', 'users.position_title')
+            ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
+            ->leftJoin('users as reviewer', 'reviews.review_by', '=', 'reviewer.id')
+            ->where('reviews.status', '!=', 'deleted')
+            ->latest('reviews.created_at')
+            ->get();
+
             if ($reviewsdata->count() > 0) {
                 return response()->json(['status' => true, 'message' => "Reviews data fetched successfully", 'data' => $reviewsdata], 200);
             } else {
@@ -303,6 +311,7 @@ class ReviewController extends Controller
         $difference = $thumbsUp - $thumbsDown;
         
         $total = $thumbsUp + $thumbsDown;
+        return $total;
         
         if ($total > 0) {
             $per = intval(min(100, abs($difference) * 100 / $total));
