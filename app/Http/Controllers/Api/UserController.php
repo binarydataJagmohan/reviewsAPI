@@ -444,16 +444,21 @@ class UserController extends Controller
             throw new HttpException(500, $e->getMessage());
         }
     }
-
     public function deleteUser(Request $request)
     {
+
         try {
+
             $user = User::findOrFail($request->id);
+
             $reviews = Review::where('review_by', $request->id)->orWhere('review_to', $request->id)->get();
-            foreach ($reviews as $review) {
-                $review->delete();
+
+            if ($reviews->isNotEmpty()) {
+                foreach ($reviews as $review) {
+                    $review->delete();
+                }
             }
-            $user->status = 'deleted';
+            $user->status = 'delete';
             $user->save();
             return response()->json(['message' => 'User and reviews deleted successfully']);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -462,6 +467,61 @@ class UserController extends Controller
             return response()->json(['message' => 'An error occurred while deleting user and reviews'], 500);
         }
     }
-    
- 
+
+    public function user_merge(Request $request)
+    {
+        try {
+            // Identify the two users with the same name
+            $user1 = User::where('first_name', $request->first_name)->firstOrFail();
+            $user2 = User::where('first_name', $request->first_name)->where('id', '<>', $user1->id)->firstOrFail();
+
+            // Set $masterUser to the user that will retain their reviews
+            $masterUser = $user1;
+
+            // Retrieve the reviews for both users
+            $reviews1 = Review::where('review_by', $user1->id)->orWhere('review_to', $user1->id)->get();
+            $reviews2 = Review::where('review_by', $user2->id)->orWhere('review_to', $user2->id)->get();
+
+            // Loop through the reviews and update the review_by or review_to fields
+            foreach ($reviews1 as $review) {
+                $review->review_by = $masterUser->id;
+                $review->save();
+            }
+            foreach ($reviews2 as $review) {
+                $review->review_by = $masterUser->id;
+                $review->save();
+            }
+
+            // Delete the non-master user and any remaining reviews
+            if ($user2->reviews()->count() == 0) {
+                $user2->delete();
+            } else {
+                foreach ($user2->reviews as $review) {
+                    $review->delete();
+                }
+                $user2->delete();
+            }
+
+            // Return a success message
+            return response()->json(['message' => 'Reviews merged successfully']);
+        } catch (\Exception $e) {
+            // Handle any exceptions and return an error message
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function getSameNameUsers(Request $request)
+    {
+        try {
+            // Retrieve users with the same first name
+            $users = User::where('first_name', $request->input('first_name'))
+                ->orderBy('last_name', 'asc')
+                ->get();
+            // Return the users in the response
+            return response()->json($users);
+        } catch (\Exception $e) {
+            // Handle any exceptions and return an error message
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
 }

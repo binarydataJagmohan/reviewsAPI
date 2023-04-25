@@ -29,7 +29,7 @@ Route::post('/reset-password',[UserController::class,'resetPassword']);
 Route::group(['middleware' => ['api']], function ($router) { 
 
 Route::post('/savereview', [App\Http\Controllers\Api\ReviewController::class, 'save_review']);
-Route::get('/getallreview', [App\Http\Controllers\Api\ReviewController::class, 'get_all_reviews']);
+// Route::get('/getallreview', [App\Http\Controllers\Api\ReviewController::class, 'get_all_reviews']);
 Route::get('/get-by-firm', [App\Http\Controllers\Api\ReviewController::class, 'get_only_firm']);
 
 
@@ -41,19 +41,20 @@ Route::get('/most-recent-review', [App\Http\Controllers\Api\ReviewController::cl
 Route::get('/search-all-reviews', [App\Http\Controllers\Api\ReviewController::class, 'search_all_reviews']);
 Route::get('/most-liked-review', [App\Http\Controllers\Api\ReviewController::class, 'most_liked_reviews']);
 Route::get('/getlikedislikes/{user_id}', [App\Http\Controllers\Api\ReviewController::class, 'getlikedislikes']);
-
-
 });
 
-// Route::group(['middleware' => ['api','jwt.auth']], function ($router) { 
-Route::get('/get-all-users', [App\Http\Controllers\Api\UserController::class, 'get_all_users']);
-// });
+    // Route::group(['middleware' => ['api','jwt.auth']], function ($router) { 
+    Route::get('/get-all-users', [App\Http\Controllers\Api\UserController::class, 'get_all_users']);
+    Route::get('/getallreview', [App\Http\Controllers\Api\ReviewController::class, 'get_all_reviews']);
+    Route::get('/get-user-profile-data-id/{id}',[UserController::class,'get_user_profile_data_id']);
+    // });
+
 Route::group(['middleware' => ['api']], function ($router) { 
 Route::post('/register', [App\Http\Controllers\Api\UserController::class, 'user_register']);
 Route::post('/login', [App\Http\Controllers\Api\UserController::class, 'user_login']);
 Route::post('/update-profile-data', [App\Http\Controllers\Api\UserController::class, 'update_profile_data']);
 Route::get('/user-own-reviews', [App\Http\Controllers\Api\UserController::class, 'user_own_reviews']);
-Route::get('/get-user-profile-data-id/{id}',[UserController::class,'get_user_profile_data_id']);
+// Route::get('/get-user-profile-data-id/{id}',[UserController::class,'get_user_profile_data_id']);
 Route::get('/get-user-profile-data/{slug}', [UserController::class, 'get_user_profile_data']);
 
 Route::get('/search',[UserController::class,'search']);
@@ -72,6 +73,14 @@ Route::get('/get-edit-profile-data/{id}',[UserController::class,'get_edit_profil
 Route::get('/get-bunjee-score',[UserController::class,'get_bunjee_score']);
 
 Route::post('/users', [UserController::class, 'deleteUser']);
+
+// Route::delete('/users/{id}', [UserController::class, 'deleteUser']);
+
+Route::post('/users/merge', [UserController::class, 'user_merge']);
+
+Route::get('/users/same-name', [UserController::class, 'getSameNameUsers']);
+
+
 
 
 });
