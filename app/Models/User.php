@@ -32,7 +32,8 @@ class User extends Authenticatable implements JWTSubject
         'location',
         'phone',
         'user_type',
-        'slug'
+        'slug',
+        'bunjee_score'
     ];
 
     /**
@@ -72,4 +73,6 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Review::class);
     }
+
+
 }

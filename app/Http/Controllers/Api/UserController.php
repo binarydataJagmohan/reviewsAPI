@@ -199,19 +199,24 @@ class UserController extends Controller
         }
     }
 
-    public function get_user_profile_data_id(Request $request, $id)
+    public function get_user_profile_data_id($id)
     {
         try {
-
             // $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
             //     ->select('reviews.*', "reviews.id as review_id", 'users.*')
             //     ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
             //     ->get();
             $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
-                ->select('reviews.*', "reviews.id as review_id", 'users.*')
+                ->select('reviews.*', 'reviews.id as review_id', 'users.*')
+                //->where('reviews.review_by', Auth::user()->id)
                 ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
-                // ->orwhere(['reviews.review_by' => $id, 'reviews.status' => 'active'])
+                ->union(
+                    Review::join('users', 'users.id', 'reviews.review_to')
+                        ->select('reviews.*', 'reviews.id as review_id', 'users.*')
+                        ->where(['reviews.review_by' => $id, 'reviews.status' => 'active'])
+                )
                 ->get();
+
             $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
             if ($userdata) {
                 return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata, 'reviews' => $reviewsdata], 200);
@@ -222,6 +227,29 @@ class UserController extends Controller
             throw new HttpException(500, $e->getMessage());
         }
     }
+
+
+
+    public function get_admin_profile_data_id($id)
+    {
+        try {
+            $reviewsdata = Review::join('users', 'users.id', 'reviews.review_by')
+                ->select('reviews.*', 'reviews.id as review_id', 'users.*')
+                //->where('reviews.review_by', Auth::user()->id)
+                ->where(['reviews.review_to' => $id, 'reviews.status' => 'active'])
+                ->get();
+
+            $userdata = User::where('id', $id)->where('status', '!=', 'deleted')->first();
+            if ($userdata) {
+                return response()->json(['status' => true, 'message' => "user data fetch successfully!", 'data' => $userdata, 'reviews' => $reviewsdata], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No user data found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+
 
     public function get_user_profile_data(Request $request, $slug)
     {
@@ -257,6 +285,22 @@ class UserController extends Controller
         }
     }
 
+    public function get_single_review($id)
+    {
+        try {
+            $review = Review::join('users','users.id','reviews.review_to')
+            ->select('reviews.id as reviewId', 'reviews.*', 'users.*')
+            ->where('reviews.id', $id)->where('reviews.status', 'active')->first();
+            if ($review) {
+                return response()->json(['status' => true, 'message' => "Single review fetched successfully", 'data' => $review], 200);
+            } else {
+                return response()->json(['status' => false, 'message' => "No review found", 'data' => ""], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+
     // $users = DB::table('reviews')
     //         ->join('users as user_1', 'reviews.review_by', '=', 'user_1.id')
     //         ->join('users as user_2', 'reviews.review_to', '=', 'user_2.id')
@@ -264,9 +308,9 @@ class UserController extends Controller
     //         ->where('user_1.id', $id)
     //         ->first();
 
-    public function search(Request $request)
+    public function search(Request $request, $slug)
     {
-        $query = $request->input('q');
+        $query = $slug;
 
         $users = User::where('first_name', 'like', "%$query%")
             ->orWhere('last_name', 'like', "%$query%")
@@ -446,13 +490,9 @@ class UserController extends Controller
     }
     public function deleteUser(Request $request)
     {
-
         try {
-
             $user = User::findOrFail($request->id);
-
             $reviews = Review::where('review_by', $request->id)->orWhere('review_to', $request->id)->get();
-
             if ($reviews->isNotEmpty()) {
                 foreach ($reviews as $review) {
                     $review->delete();
@@ -471,57 +511,16 @@ class UserController extends Controller
     public function user_merge(Request $request)
     {
         try {
-            // Identify the two users with the same name
-            $user1 = User::where('first_name', $request->first_name)->firstOrFail();
-            $user2 = User::where('first_name', $request->first_name)->where('id', '<>', $user1->id)->firstOrFail();
 
-            // Set $masterUser to the user that will retain their reviews
-            $masterUser = $user1;
-
-            // Retrieve the reviews for both users
-            $reviews1 = Review::where('review_by', $user1->id)->orWhere('review_to', $user1->id)->get();
-            $reviews2 = Review::where('review_by', $user2->id)->orWhere('review_to', $user2->id)->get();
-
-            // Loop through the reviews and update the review_by or review_to fields
-            foreach ($reviews1 as $review) {
-                $review->review_by = $masterUser->id;
-                $review->save();
-            }
-            foreach ($reviews2 as $review) {
-                $review->review_by = $masterUser->id;
-                $review->save();
-            }
-
-            // Delete the non-master user and any remaining reviews
-            if ($user2->reviews()->count() == 0) {
-                $user2->delete();
-            } else {
-                foreach ($user2->reviews as $review) {
-                    $review->delete();
-                }
-                $user2->delete();
-            }
-
-            // Return a success message
-            return response()->json(['message' => 'Reviews merged successfully']);
+            $delete_id = $request->input('deleteId');
+            $user_merge_id = $request->input('mergeId');
+            $data = Review::where('review_to', $delete_id)->update(['review_to' => $user_merge_id]);
+            $user = User::find($delete_id);
+            $user->status = "delete";
+            $user->save();
+            return response()->json(['status' => true, 'message' => "User data merged successfully!", 'data' => $data], 200);
         } catch (\Exception $e) {
-            // Handle any exceptions and return an error message
-            return response()->json(['error' => $e->getMessage()]);
-        }
-    }
-
-    public function getSameNameUsers(Request $request)
-    {
-        try {
-            // Retrieve users with the same first name
-            $users = User::where('first_name', $request->input('first_name'))
-                ->orderBy('last_name', 'asc')
-                ->get();
-            // Return the users in the response
-            return response()->json($users);
-        } catch (\Exception $e) {
-            // Handle any exceptions and return an error message
-            return response()->json(['error' => $e->getMessage()]);
+            throw new HttpException(500, $e->getMessage());
         }
     }
 }

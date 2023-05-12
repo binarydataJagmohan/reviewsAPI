@@ -28,7 +28,6 @@ class ReviewController extends Controller
             'total_rating' => 'required|numeric|min:1|max:5',
             //'avg_rating' => 'required|numeric|min:1|max:5',
         ]);
-
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
@@ -36,7 +35,6 @@ class ReviewController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
-
         // Check if user try to rate themselves
         if ($request->review_by == $request->review_to) {
             return response()->json([
@@ -44,7 +42,6 @@ class ReviewController extends Controller
                 'message' => 'You cannot rate yourself',
             ], 422);
         }
-
         // Check if user has already reviewed this person
         $existing_review = Review::where('review_by', $request->review_by)
             ->where('review_to', $request->review_to)
@@ -57,44 +54,78 @@ class ReviewController extends Controller
             ], 422);
         }
         try {
-            //return $request->input();
             $review = new Review();
             $review->review_by = $request->review_by;
             $review->review_to = $request->review_to;
             $review->description = $request->description;
             $review->total_rating = $request->total_rating;
-            // $review->thumbs_up = $request->thumbs_up;
-            // $review->thumbs_down = $request->thumbs_down;
-            // Calculate the average rating
-            $total_ratings = Review::where('review_to', $request->review_to)->sum('total_rating');
-            $num_of_ratings = Review::where('review_to', $request->review_to)->count();
-            if ($num_of_ratings > 0) {
-                $avg_rating = round($total_ratings / $num_of_ratings, 1);
+
+            // Check if user already has reviews
+            $existingReviews = Review::where('review_to', $request->review_to)->get();
+            if ($existingReviews->count() > 0) {
+                $total_ratings = $existingReviews->sum('total_rating');
+                $num_of_ratings = $existingReviews->count();
             } else {
-                $avg_rating = 0;
+                $total_ratings = 0;
+                $num_of_ratings = 0;
             }
+            $avg_rating = $num_of_ratings > 0 ? round(($total_ratings + $request->total_rating) / ($num_of_ratings + 1), 1) : $request->total_rating;
             $review->avg_rating = $avg_rating;
 
             $save_review = $review->save();
-            //  $adminEmail = 'dev3.bdpl@gmail.com';
-            // Mail::to($adminEmail)->send(new ReviewMail());
+
             if ($save_review) {
                 return response()->json([
                     'status' => true,
                     'message' => 'Reviews submit successfully',
                 ]);
             } else {
-                return response()->json(['status' => true, 'message' => "There has been error for to submit review."], 404);
+                return response()->json(['status' => true, 'message' => "There has been an error submitting the review."], 404);
             }
         } catch (\Exception $e) {
             throw new HttpException(500, $e->getMessage());
         }
     }
 
+
+    public function update_review(Request $request)
+    {
+        // Find the review by ID
+        $review = Review::find($request->id);
+        if (!$review) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Review not found',
+            ], 404);
+        }
+        try {
+            // Update the review fields
+            $review->description = $request->description;
+            $review->total_rating = $request->total_rating;
+    
+            // Update the average rating of the reviewed user
+            $existingReviews = Review::where('review_to', $review->review_to)->get();
+            $total_ratings = $existingReviews->sum('total_rating') - $review->total_rating + $request->total_rating;
+            $num_of_ratings = $existingReviews->count();
+            $avg_rating = $num_of_ratings > 0 ? round(($total_ratings) / ($num_of_ratings), 1) : 0;
+            $review->avg_rating = $avg_rating;
+    
+            // Save the updated review
+            $save_review = $review->save();
+            if (!$save_review) {
+                return response()->json(['status' => false, 'message' => "There has been an error updating the review."], 404);
+            } else {
+                return response()->json(['status' => true, 'message' => "Review has been successfully updated."], 200);
+            }
+        } catch (\Exception $e) {
+            throw new HttpException(500, $e->getMessage());
+        }
+    }
+    
+
     public function my_reviews(Request $request, $id)
     {
         $user = User::find($id);
-
         $reviews = DB::table('reviews')
             ->join('users', 'reviews.review_by', '=', 'users.id')
             ->where('reviews.review_to', '=', $id)
@@ -112,12 +143,12 @@ class ReviewController extends Controller
             //     ->latest('reviews.created_at')
             //     ->get();
 
-            $reviewsdata = Review::select('reviews.id as review_id', 'reviews.*', 'users.first_name as review_to_name', 'reviewer.first_name as review_by_name', 'users.group_name', 'users.company_name', 'users.position_title')
-            ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
-            ->leftJoin('users as reviewer', 'reviews.review_by', '=', 'reviewer.id')
-            ->where('reviews.status', '!=', 'deleted')
-            ->latest('reviews.created_at')
-            ->get();
+            $reviewsdata = Review::select('reviews.id as review_id', 'reviews.*', 'users.first_name as review_to_name', 'reviewer.first_name as review_by_name', 'users.group_name', 'users.company_name', 'users.slug', 'users.position_title')
+                ->leftJoin('users', 'reviews.review_to', '=', 'users.id')
+                ->leftJoin('users as reviewer', 'reviews.review_by', '=', 'reviewer.id')
+                ->where('reviews.status', '!=', 'deleted')
+                ->latest('reviews.created_at')
+                ->get();
 
             if ($reviewsdata->count() > 0) {
                 return response()->json(['status' => true, 'message' => "Reviews data fetched successfully", 'data' => $reviewsdata], 200);
@@ -305,28 +336,27 @@ class ReviewController extends Controller
             $current_dislikes = ReviewLikes::where(['review_id' => $request->reviewId, 'like_status' => 0])->count();
             Review::where('id', $request->reviewId)->update(['thumbs_down' => $current_dislikes]);
         }
-        
-        $thumbsUp = Review::where('review_to', $request->userId)->sum('thumbs_up');
-        $thumbsDown = Review::where('review_to', $request->userId)->sum('thumbs_down');
+
+        $thumbsUp = Review::where('review_by', $review->review_by)->sum('thumbs_up');
+        $thumbsDown = Review::where('review_by', $review->review_by)->sum('thumbs_down');
         $difference = $thumbsUp - $thumbsDown;
-        
         $total = $thumbsUp + $thumbsDown;
-        return $total;
-        
         if ($total > 0) {
-            $per = intval(min(100, abs($difference) * 100 / $total));
+            // $per = intval(min(100, abs($difference) * 100 / $total));
+            // $per = intval(min(100, abs($difference) * 100 / $total)) * ($difference > 0 ? 1 : -1);
+            $percentage = ($thumbsUp / $total) * 100;
+            User::where('id', $review->review_by)->update(['bunjee_score' => $percentage]);
         } else {
-            $per = 0;
+            $percentage = 0;
         }
-        
-        $user->bunjee_score = $per;
-        $user->save();
-        
+        // $user->bunjee_score = $percentage;
+        // $user->save();
+
         $reviews = Review::join('users', 'users.id', 'reviews.review_to', 'reviews.id')
             ->select('reviews.*', 'users.*')
             ->where('review_to', $review->review_to)
             ->get();
-        return response()->json(['message' => 'Like saved successfully', 'data' => $reviews, 'difference' => $difference, 'per' => $per]);
+        return response()->json(['message' => 'Like saved successfully', 'data' => $reviews, 'difference' => $difference, 'per' => $percentage]);
     }
 
     public function new_user_review(Request $request)
@@ -348,12 +378,11 @@ class ReviewController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
-
-        //return response()->json($request->all());
         try {
             $user = new User();
             $user->first_name = $request->input('first_name');
             $user->last_name = $request->input('last_name');
+            $user->slug = Str::slug($request->input('first_name') . ' ' . $request->input('last_name'));
             $user->company_name = $request->input('company_name');
             $user->position_title = $request->input('position_title');
             $user->group_name = $request->input('group_name');
@@ -403,4 +432,3 @@ class ReviewController extends Controller
     // }
 
 }
-
